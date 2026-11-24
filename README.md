@@ -1,11 +1,11 @@
 
-## CAMP Ownership Mapping
+## LAND Ownership Mapping
 
 The code and data in this repo are used to assign specific ownership names and ownership categories to property parcels in Miami-Dade County according to criteria created by the University of Miami [Office for Community and Civic Engagement](https://civic.miami.edu/).
 
 ### Use
 ```bash
-python camp_ownership_map.py <parcel_file.csv>
+python land_ownership_map.py <parcel_file.csv>
 ```
 
 ### Inputs
@@ -40,10 +40,10 @@ flowchart  TD
 A[Parcels] -->|mdc_property_boundary, mdc_municipal_zoning, mdc_county_zoning, mdc_flood_hazard, mdc_qualified_opportunity_zones, mdc_neighborhoods, mdc_municipal_boundary, com_neighborhoods, mdc_2015_dem_30ft| B(Parcel Vector Tiles)
 X(mdc_cce_distinct_dor_codes)  --> B
 C[mdc_cce_land_parcel_filters] --> D
-B  --> |mdc_major_roads, mdc_streets, mdc_urban_growth_boundary, mdc_municipal_park_boundaries, mdc_county_park_boundaries, mdc_state_and_national_parks| D(CAMP Parcels)
+B  --> |mdc_major_roads, mdc_streets, mdc_urban_growth_boundary, mdc_municipal_park_boundaries, mdc_county_park_boundaries, mdc_state_and_national_parks| D(LAND Parcels flagged)
 Y(mdc_cce_land_exclude_water)  --> D
 Z(mdc_cce_land_exclude_dor_codes)  --> D
-D  -->|Filters| H(CAMP Parcels Filtered)
-H  --> |Owner  Filters| F(CAMP Parcels with Ownership)
+D  -->|Filters| H(LAND Parcels Filtered)
+H  --> |Owner Filters| F(LAND Parcels with Ownership)
 ```
 
