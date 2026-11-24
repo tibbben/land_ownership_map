@@ -1,22 +1,23 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
-Module Name: camp_ownership_map.py
+Module Name: land_ownership_map.py
 Description: Filters the ownership columns in the Miami-Dade County parcels and assigns
-             a standard set of categories for the Climate Equity & Mapping Platform
-             (CAMP) created by the Univeristy of Miami Office of Civic and Community 
+             a standard set of categories for the Land Access for Neighborhood Development
+             (LAND) created by the Univeristy of Miami Office of Civic and Community 
              Engagement (CCE). There are three main steps in the pipeline:
              
-             1. predefined ownership cagtegories are assigned to the parcels (see csv/ownership_map.cs)
+             1. predefined ownership cagtegories are assigned to the parcels (see csv/ownership_map.csv)
              2. an exclusion filter is run to remove certain types of owners (see csv/exclusion.csv)
              3. underutilization catgories are assigend based on predefined criteria. See:
                 https://miami.app.box.com/integrations/officeonline/openOfficeOnline?fileId=1676462145432
       
 The results are seved to:
-    base_path/data/mdc_parcels_camp_ownership/download/mdc_parcels_camp_ownership.json
+    base_path/data/mdc_parcels_land_ownership/download/mdc_parcels_land_ownership.json
 
 Usage:
-    python camp_ownership_map.py /path/to/mdc_parcels_camp_filtered.json
+    python land_ownership_map.py /path/to/mdc_parcels_land_filtered.json
 
 Dependencies:
     - pandas >= 2.0
@@ -37,7 +38,7 @@ import sys
 import json
 
 # could br read from metadata ...
-camp_columns = [
+land_columns = [
     "mdc_county_zone",
     "mdc_county_zone_desc",
     "mdc_municipal_zone",
@@ -60,8 +61,8 @@ camp_columns = [
     "fmla_area_type",
     "mdc_urban_growth_boundary",
     "mdc_building_density",
-    "camp_ownership",
-    "camp_categories",
+    "land_ownership",
+    "land_categories",
     "underutilized",
     "spatial",
     "regulatory",
@@ -137,14 +138,14 @@ def assign_ownership(parcels: pd.DataFrame, categories: pd.DataFrame) -> pd.Data
             b = b | create_condition(sub_owner, parcels)
 
         # set the ownership and categories in the parcels with the conditional array
-        parcels.loc[b,'camp_ownership'] = category['Ownership']
-        parcels.loc[b,'camp_categories'] = category['Owner Categories']
+        parcels.loc[b,'land_ownership'] = category['Ownership']
+        parcels.loc[b,'land_categories'] = category['Owner Categories']
 
         return category['Ownership']
     
     # add columns for new categories
-    parcels['camp_ownership'] = ''
-    parcels['camp_categories'] = ''
+    parcels['land_ownership'] = ''
+    parcels['land_categories'] = ''
     
     return categories.apply(filter_and_assign, parcels=parcels, axis=1)
 
@@ -171,7 +172,7 @@ def exclude(parcels: pd.DataFrame, exclusion: pd.DataFrame) -> None:
         b = (parcels['true_owner1'].str.contains(exclude['Exclusion'],case=False) | \
              parcels['true_owner2'].str.contains(exclude['Exclusion'],case=False) | \
              parcels['true_owner3'].str.contains(exclude['Exclusion'],case=False) )
-        if not exclude['Global']: b = b & (parcels['camp_ownership'] == '')
+        if not exclude['Global']: b = b & (parcels['land_ownership'] == '')
         b = b.astype(bool).fillna(False)
 
         # directly update the parcels df
@@ -192,7 +193,7 @@ def main():
          https://miami.app.box.com/integrations/officeonline/openOfficeOnline?fileId=1676462145432
       
     The results are seaved to:
-      base_path/data/mdc_parcels_camp_ownership/download/mdc_parcels_camp_ownership.json
+      base_path/data/mdc_parcels_land_ownership/download/mdc_parcels_land_ownership.json
 
     :return: the updated parcels are saved to a file
     :rtype: None
@@ -203,7 +204,7 @@ def main():
     else: # default for testing
         base_path = "D:/Sync/gitRepos/projects/gdsc/_localdata"
         #base_path = "/Users/tibben/Documents/Sync/UMCCS/gdsc/_localdata"
-        parcel_file = f"{base_path}/data/mdc_parcels_camp_filtered/derived/mdc_parcels_camp_filtered.json"
+        parcel_file = f"{base_path}/data/mdc_parcels_land_filtered/derived/mdc_parcels_land_filtered.json"
 
     # load test parcel data and category map
     path = ("/").join(parcel_file.split("/")[:-1])
@@ -228,15 +229,15 @@ def main():
     
     # catch all remaining religious organizations
     b = parcels['dor_desc'].str.contains("RELIGIOUS.*",na=False)
-    parcels.loc[b,'camp_ownership'] = "Religious"
-    parcels.loc[b,'camp_categories'] = "Institutional"
+    parcels.loc[b,'land_ownership'] = "Religious"
+    parcels.loc[b,'land_categories'] = "Institutional"
 
     # give feedback
     #for owner_filter in owner_filters:
     #    print((
     #        f"{owner_filter} "
     #        f"original {len(parcels[parcels['Ownership'].str.strip()==owner_filter])} "
-    #        f"test {len(parcels[parcels['camp_ownership'].str.strip()==owner_filter])}"
+    #        f"test {len(parcels[parcels['land_ownership'].str.strip()==owner_filter])}"
     #    ))
         
     # add final exclude conditions to exclude field
@@ -249,7 +250,7 @@ def main():
             (parcels['exclude'].isna()) | 
             (parcels['exclude'].str.len() == 0)
         ) &
-        (parcels['camp_ownership'].str.len() > 0) &
+        (parcels['land_ownership'].str.len() > 0) &
         (parcels['year_built'] != 9999)
     ].copy()
     
@@ -263,7 +264,7 @@ def main():
 
     # religious and school board exception
     parcels.loc[
-        parcels['camp_ownership'].isin(["Religious", "School Board"]),
+        parcels['land_ownership'].isin(["Religious", "School Board"]),
         'spatial'
     ] = (parcels['building_actual_area']/parcels['lot_size'] < 0.15)
 
@@ -301,10 +302,10 @@ def main():
             properties = {}
             for col in rename:
                 if 'properties' in col:
-                    prop = rename[col].upper() if rename[col] not in camp_columns else rename[col]
+                    prop = rename[col].upper() if rename[col] not in land_columns else rename[col]
                     properties[prop] = row[rename[col]]
-            properties['camp_ownership'] = row['camp_ownership']
-            properties['camp_categories'] = row['camp_categories']
+            properties['land_ownership'] = row['land_ownership']
+            properties['land_categories'] = row['land_categories']
             properties['underutilized'] = row['underutilized']
             properties['spatial'] = row['spatial']
             properties['regulatory'] = row['regulatory']
@@ -315,7 +316,7 @@ def main():
             }
 
         data['features'] = parcels.apply(restructure, axis=1).tolist()
-        with open(f"../download/mdc_parcels_camp_ownership.json", "w") as json_file:
+        with open(f"../download/mdc_parcels_land_ownership.json", "w") as json_file:
             json.dump(data, json_file)
 
     elif ext == "csv":
